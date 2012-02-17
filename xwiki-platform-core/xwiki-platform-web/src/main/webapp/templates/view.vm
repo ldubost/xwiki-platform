@@ -1,3 +1,5 @@
+## auto load ios
+#template("autoload.vm")
 ###
 ### Main "view" template
 ###
