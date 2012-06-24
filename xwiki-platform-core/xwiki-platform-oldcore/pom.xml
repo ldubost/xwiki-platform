@@ -1128,6 +1128,8 @@
               **/web/ViewAttachRevAction.java,
               **/web/ViewrevAction.java,
               **/web/XWikiAction.java,
+              **/web/XWikiSpecialAction.java,
+              **/web/XWikiSpecialActionRouter.java,
               **/web/XWikiConfigurationService.java,
               **/web/XWikiDebugGWTURLFactory.java,
               **/web/XWikiDefaultURLFactory.java,

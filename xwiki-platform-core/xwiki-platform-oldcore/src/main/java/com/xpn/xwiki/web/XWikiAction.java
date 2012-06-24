@@ -122,6 +122,52 @@ public abstract class XWikiAction extends Action
 
         return actionForward;
     }
+    
+    public XWikiAction getXWikiSpecialAction(XWikiAction action, XWikiDocument doc, XWikiContext context) {
+        try {
+    	XWikiSpecialActionRouter specialActionRouter = getXWikiSpecialActionRouter(context);
+    	if (specialActionRouter==null)
+    		return action;
+    	XWikiSpecialAction specialAction = specialActionRouter.getXWikiSpecialAction(doc, context);
+    	if (specialAction==null)
+    		return action;
+    	else
+    		return specialAction;
+        } catch (Throwable e) {
+        	// super secure catching
+            if (LOGGER.isErrorEnabled())
+                LOGGER.error("Exception while parsing groovy action router code", e);
+        	return action;
+        }
+    }
+    
+    public XWikiSpecialActionRouter getXWikiSpecialActionRouter(XWikiContext context)
+    {
+        String actionrouterpage = context.getWiki().Param("xwiki.action.routerpage", context.getDatabase() + ":XWiki.SpecialActionRouter");
+        if ((actionrouterpage == null) || actionrouterpage.trim().equals("")) {
+            return null;
+        }
+
+        try {
+            XWikiDocument doc = context.getWiki().getDocument(actionrouterpage, context);
+            if (doc.isNew())
+            	 return null;
+            
+            if (context.getWiki().getRightService().hasProgrammingRights(doc, context)) {
+            	return (XWikiSpecialActionRouter) context.getWiki().parseGroovyFromString(doc.getContent(), context);
+            } else {
+                if (LOGGER.isErrorEnabled())
+                    LOGGER.error("Action routerimplementation page " + actionrouterpage
+                        + " missing programming rights, requires ownership by authorized user.");
+                return null;
+            }
+        } catch (Throwable e) {
+        	// super secure catching
+            if (LOGGER.isErrorEnabled())
+                LOGGER.error("Exception while parsing groovy action router code", e);
+            return null;
+        }
+    }
 
     public ActionForward execute(XWikiContext context) throws Exception
     {
@@ -227,20 +273,20 @@ public abstract class XWikiAction extends Action
                 String renderResult = null;
                 XWikiDocument doc = context.getDoc();
                 docName = doc.getFullName();
-                if (action(context)) {
-                    renderResult = render(context);
+                
+                // Let's ask the wiki if we should do something specific
+                XWikiAction action = getXWikiSpecialAction(this, doc, context);
+                
+                if (action==null) 
+                	action = this;
+                
+                if (action.action(context)) {
+                	renderResult = action.render(context);
                 }
 
-                if (renderResult != null) {
-                    if (doc.isNew() && "view".equals(context.getAction())
-                        && !"recyclebin".equals(context.getRequest().get("viewer"))) {
-                        String page = Utils.getPage(context.getRequest(), "docdoesnotexist");
-                        Utils.parseTemplate(page, context);
-                    } else {
-                        String page = Utils.getPage(context.getRequest(), renderResult);
-                        Utils.parseTemplate(page, !page.equals("direct"), context);
-                    }
-                }
+                // end action by parsing template
+                action.finishAction(renderResult, doc, context);
+                
                 return null;
             } catch (Throwable e) {
                 if (e instanceof IOException) {
@@ -353,6 +399,19 @@ public abstract class XWikiAction extends Action
             }
         }
     }
+
+	public void finishAction(String renderResult, XWikiDocument doc, XWikiContext context) throws XWikiException {
+		if (renderResult != null) {
+		    if (doc.isNew() && "view".equals(context.getAction())
+		        && !"recyclebin".equals(context.getRequest().get("viewer"))) {
+		        String page = Utils.getPage(context.getRequest(), "docdoesnotexist");
+		        Utils.parseTemplate(page, context);
+		    } else {
+		        String page = Utils.getPage(context.getRequest(), renderResult);
+		        Utils.parseTemplate(page, !page.equals("direct"), context);
+		    }
+		}
+	}
 
     protected XWikiContext initializeXWikiContext(ActionMapping mapping, ActionForm form, HttpServletRequest req,
         HttpServletResponse resp) throws XWikiException, ServletException
