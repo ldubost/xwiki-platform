@@ -380,7 +380,8 @@ public class DBListClass extends ListClass
                 ArrayList<String> words = new ArrayList<String>();
 
                 while (st.hasMoreTokens()) {
-                    words.add(st.nextToken().toLowerCase());
+                    // words.add(st.nextToken().toLowerCase());
+                    words.add(st.nextToken());
                 }
 
                 int comma = words.indexOf(",") - 1;
@@ -485,7 +486,7 @@ public class DBListClass extends ListClass
                 path = xwiki.getURL("Main.WebHome", "view", context);
                 String classname = this.getObject().getName();
                 String fieldname = this.getName();
-                String hibquery = this.getSql();
+                String hibquery = this.getQuery(context);
                 String secondCol = "-", firstCol = "-";
 
                 if (hibquery != null && !hibquery.equals("")) {
