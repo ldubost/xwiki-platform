@@ -126,6 +126,31 @@ public class UsersClass extends ListClass
     }
 
     @Override
+    public void displayView(StringBuffer buffer, String name, String prefix, BaseCollection object, XWikiContext context)
+    {
+        List<String> selectlist;
+        String separator = getSeparator();
+        BaseProperty prop = (BaseProperty) object.safeget(name);
+        Map<String, ListItem> map = getMap(context);
+
+        // Skip unset values.
+        if (prop == null) {
+            return;
+        }
+
+        if (prop instanceof ListProperty) {
+            selectlist = ((ListProperty) prop).getList();
+            List<String> newlist = new ArrayList<String>();
+            for (String value : selectlist) {
+                newlist.add(getText(getDisplayValue(value, name, map, context),context));
+            }
+            buffer.append(StringUtils.join(newlist, separator));
+        } else {
+            buffer.append(getText(getDisplayValue(prop.getValue(), name, map, context),context));
+        }
+    }
+
+    @Override
     public void displayEdit(StringBuffer buffer, String name, String prefix, BaseCollection object, XWikiContext context)
     {
         select select = new select(prefix + name, 1);
